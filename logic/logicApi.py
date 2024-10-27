@@ -22,7 +22,7 @@ class LogicApi:
 
     #zu bestehender Preisliste wird einmal taeglich zu eienr stunde die Liste von Tagespreisen hinzgefuegt
     #sideeffect auf preisliste des stromanbieter
-    def aktualisierePreisliste(self: 'LogicApi', anbieter:Stromanbieter, stundenZeit):
+    def sammlePreise(self: 'LogicApi', anbieter:Stromanbieter, stundenZeit:int):
         s = scheduler(time.time, time.sleep)
         self._planen(anbieter, s, stundenZeit)
         while True:
@@ -30,43 +30,47 @@ class LogicApi:
             self._planen(anbieter, s, stundenZeit)
 
     def erstelleStromanbieter(self: 'LogicApi', name:str) -> Optional[Stromanbieter] :
-        response:Optional[requests.Response] = BoersenpreisApi.httpAnfrage(self.url)
+        response:Optional[BoersenpreisApiDaten] = BoersenpreisApi.httpAnfrage(self.url)
         if response is not None:
             preisListe:List[Preis] = self._erstellePreisliste(response)
             stromanbieter = Stromanbieter(name=name, stundenpreise=preisListe)
+            ##TODO yael -> dbApi.erstelleStromanbieter(stromanbieter)
+            ##TODO richard: exception handling falls kein zugriff auf db möglich
             return stromanbieter
         else:
             return None
-        
-    def _filterNachStundenpreis(self: 'LogicApi', prices:List[Preis]):
+    #nimm stundenpreis -> date strings mit minute = 00 und sekunde = 00
+    def _filterNachStundenpreis(self: 'LogicApi', preise:List[Preis]) -> List[Preis]:
         stundenpreise:List[Preis] = []
-        for entry in prices:
-            date_str:str = entry['date']
+        for preis in preise:
+            date_str:str = preis['date']
             dt:datetime = datetime.fromisoformat(date_str[:-6])  
             if dt.minute == 0 and dt.second == 0:
-                stundenpreise.append(entry)
+                stundenpreise.append(preis)
         return stundenpreise
 
-    def _randomisiere( self: 'LogicApi', preisListe:List[Preis]) ->  List[Preis]:
+    def _randomisierePreise( self: 'LogicApi', preisListe:List[Preis]) ->  List[Preis]:
         for entry in preisListe:
             alterWert = entry['value']
             neuerWert = round(random.normalvariate(alterWert, 0.2), 2)
             entry['value'] = neuerWert
         return preisListe
     
-    def _erstellePreisliste(self: 'LogicApi', response:requests.Response) -> List[Preis]:
+    def _erstellePreisliste(self: 'LogicApi', response:BoersenpreisApiDaten) -> List[Preis]:
         apiDaten:BoersenpreisApiDaten = response
         preisListeBoerseViertelstuendlich:List[Preis] = apiDaten['data']
         preisListeBoerseStuendlich:List[Preis] = self._filterNachStundenpreis(preisListeBoerseViertelstuendlich)
-        preisListeRandomisiert = self._randomisiere(preisListeBoerseStuendlich)
+        preisListeRandomisiert = self._randomisierePreise(preisListeBoerseStuendlich)
         return preisListeRandomisiert
     
-    def fetchAndUpdate(self: 'LogicApi', anbieter:Stromanbieter):
-        response:Optional[requests.Response] = BoersenpreisApi.httpAnfrage(self.url)
+    def fetchAndAddTodayPrices(self: 'LogicApi', anbieter:Stromanbieter):
+        response:Optional[BoersenpreisApiDaten] = BoersenpreisApi.httpAnfrage(self.url)
         if response is not None:
             preisListe:List[Preis] = self._erstellePreisliste(response)
-            #TODO Richard: nur append, wenn Datum nicht schon enthalten
+            ##TODO Richard: nur append, wenn Datum nicht schon enthalten
             anbieter.stundenpreise.append(preisListe)
+            ##TODO yael -> perdbApisistenceApi.updateStromanbieter(stromanbieter)
+            ##TODO richard: exception handling falls kein zugriff auf db möglich
         else:
             return None
         
@@ -79,5 +83,5 @@ class LogicApi:
         # Berechne die Zeit bis zur nächsten Ausführung
         wait_time = (next_run - now).total_seconds()
         # Plane die Funktion
-        s.enter(wait_time, 1, self.fetchAndUpdate(anbieter))
+        s.enter(wait_time, 1, self.fetchAndAddTodayPrices(anbieter))
    

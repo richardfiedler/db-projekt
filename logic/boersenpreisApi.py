@@ -6,7 +6,7 @@ from Datentypen.apiData import BoersenpreisApiDaten
 
 class BoersenpreisApi():
     
-    def httpAnfrage(url:str)-> Optional[requests.Response]:
+    def httpAnfrage(url:str)-> Optional[BoersenpreisApiDaten]:
         response: requests.Response = requests.get(url)   
         if response.status_code == 200:
             data: BoersenpreisApiDaten  = response.json()
