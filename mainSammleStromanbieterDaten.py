@@ -10,6 +10,7 @@ anbieter1:Optional[Stromanbieter] = logic_api_instance.erstelleStromanbieter("An
 if anbieter1 is not None:
     print("Anbieter gespeichert in DB:")
     print(anbieter1)
+    print(anbieter1.stundenpreise[0]['value'])
 else:
     print("kein Api Zugriff oder Zugriff auf DB moeglich")
 

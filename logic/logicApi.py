@@ -58,7 +58,7 @@ class LogicApi:
     
     def _erstellePreisliste(self: 'LogicApi', response:BoersenpreisApiDaten) -> List[Preis]:
         apiDaten:BoersenpreisApiDaten = response
-        preisListeBoerseViertelstuendlich:List[Preis] = apiDaten['data']
+        preisListeBoerseViertelstuendlich:List[Preis] = apiDaten.data#apiDaten['data']
         preisListeBoerseStuendlich:List[Preis] = self._filterNachStundenpreis(preisListeBoerseViertelstuendlich)
         preisListeRandomisiert = self._randomisierePreise(preisListeBoerseStuendlich)
         return preisListeRandomisiert
