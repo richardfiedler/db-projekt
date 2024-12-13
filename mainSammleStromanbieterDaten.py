@@ -1,3 +1,4 @@
+import csv
 from typing import Optional
 from Datentypen.stromanbieter import Stromanbieter
 from logic.logicApi import LogicApi
@@ -10,7 +11,7 @@ anbieter1:Optional[Stromanbieter] = logic_api_instance.erstelleStromanbieter("An
 if anbieter1 is not None:
     print("Anbieter gespeichert in DB:")
     print(anbieter1)
-    print(anbieter1.stundenpreise[0]['value'])
+    print(anbieter1.stundenpreise[0].value)
 else:
     print("kein Api Zugriff oder Zugriff auf DB moeglich")
 
@@ -21,9 +22,17 @@ else:
     print("kein Api Zugriff moeglich")
 
 
-logic_api_instance.fetchAndAddTodayPrices(anbieter1)
-print(anbieter1)
+with open('stromanbieter_preise.csv', mode='w', newline='') as file:
+    writer = csv.writer(file)
+    writer.writerow(['name', 'date', 'value'])  # Header-Zeile
+    for preis in anbieter1.stundenpreise:
+        writer.writerow([anbieter1.name, preis.date, preis.value])
+    for preis2 in anbieter2.stundenpreise:
+        writer.writerow([anbieter2.name, preis2.date, preis2.value])
+print("CSV-Datei wurde erstellt.")
+#logic_api_instance.fetchAndAddTodayPrices(anbieter1)
+# print(anbieter1)
 
 
-stundenZeit:int = 12
-logic_api_instance.sammlePreise(anbieter2,stundenZeit)
+#stundenZeit:int = 12
+#logic_api_instance.sammlePreise(anbieter2,stundenZeit)

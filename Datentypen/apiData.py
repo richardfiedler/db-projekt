@@ -8,4 +8,4 @@ class BoersenpreisApiDaten:
     tariff: str
     unit: str
     interval: int
-    data: List[Preis]
+    prices: List[Preis]

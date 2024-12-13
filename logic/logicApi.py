@@ -43,22 +43,24 @@ class LogicApi:
     def _filterNachStundenpreis(self: 'LogicApi', preise:List[Preis]) -> List[Preis]:
         stundenpreise:List[Preis] = []
         for preis in preise:
-            date_str:str = preis['date']
-            dt:datetime = datetime.fromisoformat(date_str[:-6])  
+            #date_str:str = preis['date']
+            #dt:datetime = datetime.fromisoformat(date_str[:-6])  
+            dt = preis.date
             if dt.minute == 0 and dt.second == 0:
                 stundenpreise.append(preis)
         return stundenpreise
 
     def _randomisierePreise( self: 'LogicApi', preisListe:List[Preis]) ->  List[Preis]:
         for entry in preisListe:
-            alterWert = entry['value']
+            alterWert = entry.value#entry['value']
             neuerWert = round(random.normalvariate(alterWert, 0.2), 2)
-            entry['value'] = neuerWert
+            #entry['value'] = neuerWert
+            entry.value = neuerWert
         return preisListe
     
     def _erstellePreisliste(self: 'LogicApi', response:BoersenpreisApiDaten) -> List[Preis]:
         apiDaten:BoersenpreisApiDaten = response
-        preisListeBoerseViertelstuendlich:List[Preis] = apiDaten.data#apiDaten['data']
+        preisListeBoerseViertelstuendlich:List[Preis] = apiDaten.prices#apiDaten['data']
         preisListeBoerseStuendlich:List[Preis] = self._filterNachStundenpreis(preisListeBoerseViertelstuendlich)
         preisListeRandomisiert = self._randomisierePreise(preisListeBoerseStuendlich)
         return preisListeRandomisiert
