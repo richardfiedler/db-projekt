@@ -8,17 +8,20 @@ from datetime import datetime, timedelta
 
 import requests
 from logic.boersenpreisApi import BoersenpreisApi
+from persistence.fileapi import FileApi
 from Datentypen.apiData import BoersenpreisApiDaten
 from typing import List, Optional
 from Datentypen.stromanbieter import Stromanbieter
 from Datentypen.preis import Preis
+from persistence.persistenceApi import PersistenceApi
 
 
 class LogicApi:
 
 
-    def __init__(self: 'LogicApi', urlBoersenApi:str):
+    def __init__(self: 'LogicApi', urlBoersenApi:str, persistenceApi:PersistenceApi):
         self.url = urlBoersenApi
+        self.persistenceApi = persistenceApi
 
     #zu bestehender Preisliste wird einmal taeglich zu eienr stunde die Liste von Tagespreisen hinzgefuegt
     #sideeffect auf preisliste des stromanbieter
@@ -58,8 +61,8 @@ class LogicApi:
             entry.value = neuerWert
         return preisListe
     
-    def _erstellePreisliste(self: 'LogicApi', response:BoersenpreisApiDaten) -> List[Preis]:
-        apiDaten:BoersenpreisApiDaten = response
+    def _erstellePreisliste(self: 'LogicApi', apiDaten:BoersenpreisApiDaten) -> List[Preis]:
+        #apiDaten:BoersenpreisApiDaten = response
         preisListeBoerseViertelstuendlich:List[Preis] = apiDaten.prices#apiDaten['data']
         preisListeBoerseStuendlich:List[Preis] = self._filterNachStundenpreis(preisListeBoerseViertelstuendlich)
         preisListeRandomisiert = self._randomisierePreise(preisListeBoerseStuendlich)
@@ -69,13 +72,16 @@ class LogicApi:
         response:Optional[BoersenpreisApiDaten] = BoersenpreisApi.httpAnfrage(self.url)
         if response is not None:
             preisListe:List[Preis] = self._erstellePreisliste(response)
-            ##TODO Richard: nur append, wenn Datum nicht schon enthalten
             anbieter.stundenpreise.append(preisListe)
-            ##TODO yael -> perdbApisistenceApi.updateStromanbieter(stromanbieter)
-            ##TODO richard: exception handling falls kein zugriff auf db möglich
         else:
             return None
         
+    def writeCsv(self: 'LogicApi', anbieter:Stromanbieter):
+        self.persistenceApi.writeCsv(anbieter)
+
+    def ladeStromanbieter(self: 'LogicApi')->List[Stromanbieter]:
+          self.persistenceApi.ladeStromanbieter()
+
     def _planen(self: 'LogicApi', anbieter:Stromanbieter, s:scheduler, stundenZeit:int):
         now = datetime.now()
         next_run = now.replace(hour=stundenZeit, minute=0, second=0, microsecond=0)
